@@ -1,4 +1,15 @@
 [[package]]
+name = "art"
+version = "5.2"
+description = "ASCII Art Library For Python"
+category = "main"
+optional = false
+python-versions = ">=2.7"
+
+[package.extras]
+dev = ["coverage (>=4.1)", "codecov (>=2.0.15)", "vulture (>=1.0)", "bandit (>=1.5.1)", "pydocstyle (>=3.0.0)"]
+
+[[package]]
 name = "colorama"
 version = "0.4.4"
 description = "Cross-platform colored terminal text."
@@ -9,9 +20,13 @@ python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.8"
-content-hash = "ec33b44996e41c10232c095bb83ca911d08fb04596cd7a3811aa66c84fb49f90"
+content-hash = "682b1d2d1c5bd383084931454bbce83f5793af8de00d51514a4f5d2ed6bc562a"
 
 [metadata.files]
+art = [
+    {file = "art-5.2-py2.py3-none-any.whl", hash = "sha256:0d289b585a1d36720318383643bde71dc4e10416759486ec800a472091bef1a7"},
+    {file = "art-5.2.tar.gz", hash = "sha256:c069b08cd11dec860dab1ce2cc2550ffcf1b76968ff322b4303241e030696ba7"},
+]
 colorama = [
     {file = "colorama-0.4.4-py2.py3-none-any.whl", hash = "sha256:9f47eda37229f68eee03b24b9748937c7dc3868f906e8ba69fbcbdd3bc5dc3e2"},
     {file = "colorama-0.4.4.tar.gz", hash = "sha256:5941b2b48a20143d2267e95b1c2a7603ce057ee39fd88e7329b0c292aa16869b"},

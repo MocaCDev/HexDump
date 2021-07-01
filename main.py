@@ -1,5 +1,6 @@
-import os, sys
-from colorama import Fore, Style
+import os, sys, json
+from art import tprint
+from colorama import Fore, Style, Back
 
 # 
 # ToAdd:
@@ -9,8 +10,11 @@ from colorama import Fore, Style
 
 if not len(sys.argv) >= 2:
   raise Exception('Expected file as argument')
-if len(sys.argv) > 8:
-  raise Exception("Too many arguments applied")
+
+def WelcomeScreen():
+  tprint("HexDUMP")
+  print(f'\tCreated by MocaCDeveloper\n\tVersion: 1.0.1')
+  print('\n\t\tCommands:\n\t\t1) --FR:\n\t\t\t- Find and highlight all references of a value\n\t\t2) --has:\n\t\t\t- Check and see if a specific value exists in the binary\n\t\t3) --FA:\n\t\t\t- Find all references to a value, along with the offset\n\t\t4) --CS:\n\t\t\t- Change chunk sizes. Default is 16\n\t\t5) --colored:\n\t\t\t- Change colored output of offsets.\n\t\t6) --store:\n\t\t\t- Store dump into file\n\t\t7) --endat:\n\t\t\t- End at a specific point\n\t\t8) --startat:\n\t\t\t- Start at a secific point\n\t\t9) --JD:\n\t\t\t- Print just the data\n\t\t10) --HW:\n\t\t\t- Highlight words\n\t\t11) --HHW:\n\t\t\t- Highlight hex values of the words\n\n\tTo run, type ./dump file_to_dump --[argname] [arg_param]\n\tYou can have as many arguments as you want!')
 
 def validate_hex(file):
 
@@ -21,6 +25,13 @@ def validate_hex(file):
   has_value = ''
   find_all = ''
   store_output = False
+  CS = 16
+  color = None
+  end_at = 0
+  start_at = 0
+  just_data = False
+  highlight_words = False
+  highlight_hex_words = False
 
   if len(sys.argv) >= 2:
     for i in range(len(sys.argv)):
@@ -36,109 +47,171 @@ def validate_hex(file):
           i += 1
         if sys.argv[i] == '--store':
           store_output = True
+        if sys.argv[i] == '--CS':
+          CS = int(sys.argv[i + 1])
+          i += 1
+        if sys.argv[i] == '--endat':
+          end_at = int(sys.argv[i + 1])
+          i += 1
+        if sys.argv[i] == '--startat':
+          start_at = int(sys.argv[i + 1])
+          i += 1
+        if sys.argv[i] == '--JD':
+          just_data = True
+        if sys.argv[i] == '--HW':
+          highlight_words = True
+        if sys.argv[i] == '--HHW':
+          highlight_hex_words = True
+        if sys.argv[i] == '--colored':
+          if sys.argv[i + 1] == 'C': color = Fore.CYAN
+          if sys.argv[i + 1] == 'B': color = Fore.BLUE
+          if sys.argv[i + 1] == 'M': color = Fore.MAGENTA
+          if sys.argv[i + 1] == 'Y': color = Fore.YELLOW
       except:
-        raise Exception("Error happened")
+        raise Exception(f"Error occurred: Most likely missing a command for {sys.argv[i]}, or the command {sys.argv[i]} did not expect a command.")
 
   f = open(file, 'rb').read()
   size = len(f)
+  if end_at == 0: end_at = size
   all_ = []
 
   if store_output:
     file = open('output.txt', 'w')
   
   for byte in f:
-    # if str(b) > 'a' and str(b) < 'z' or str(b) > 'A' and b < 'Z':
-    #   ascii_val += b
-    # else:
-    #   ascii_val += '.'
+
+    if mem_addr == end_at:
+      break
+    if not mem_addr >= start_at:
+      mem_addr += 1
+      continue
+
     if ord(chr(byte)) >= 0x41 and ord(chr(byte)) <= 0x5A or ord(chr(byte)) >= 0x61 and ord(chr(byte)) <= 0x7A:
-      ascii_val += chr(byte)
+      if highlight_words:
+        ascii_val += f'{Back.CYAN}{chr(byte)}{Style.RESET_ALL}'
+      else: ascii_val += chr(byte)
     else:
       ascii_val += '.'
 
-    if has_value == '' and find_all == '':
-      if mem_addr % 16 == 0:
-        print(format(mem_addr, '06X'), end = ' | ')
-        if store_output:
-          file.write(format(mem_addr, '06X') + ' | ')
-        if len(str(hex(byte).replace('0x', ''))) == 1:
-          if not find_reference == '' and '0'+hex(byte).replace('0x', '') == find_reference:
-            print(Fore.GREEN+'0'+hex(byte).replace('0x', '')+Style.RESET_ALL, end = ' ')
+    if mem_addr % CS == 0 or mem_addr == start_at:
+      if not just_data:
+        print(f'{Style.BRIGHT + Back.WHITE + color if not color == None else Style.BRIGHT + Fore.WHITE}' + '\x1B[3m' + format(mem_addr, '06X') + f'{Style.RESET_ALL}', end = ' | ')
+      if store_output:
+        file.write(format(mem_addr, '06X') + ' | ')
+      if len(str(hex(byte).replace('0x', ''))) == 1:
+        if not find_reference == '' and '0'+hex(byte).replace('0x', '') == find_reference:
+          print(Fore.GREEN+'0'+hex(byte).replace('0x', '')+Style.RESET_ALL, end = ' ')
+        else: 
+          if not ascii_val[len(ascii_val)-1] == '.':
+            if highlight_hex_words:
+              print(Back.YELLOW + '0'+hex(byte).replace('0x', '') + Style.RESET_ALL, end = ' ')
+            else: print('0'+hex(byte).replace('0x', ''), end = ' ')
           else: print('0'+hex(byte).replace('0x', ''), end = ' ')
 
-          if store_output:
-            file.write('0'+hex(byte).replace('0x', '') + ' ')
-        else:
-          if not find_reference == '' and hex(byte).replace('0x', '') == find_reference:
-            print(Fore.GREEN+hex(byte).replace('0x', '')+Style.RESET_ALL, end = ' ')
-          else: print(hex(byte).replace('0x', ''), end = ' ')
-
-          if store_output:
-            file.write(hex(byte).replace('0x', '') + ' ')
-      elif mem_addr % 16 == 15:
-        if len(str(hex(byte).replace('0x', ''))) == 1:
-          if not find_reference == '' and '0'+hex(byte).replace('0x', '') == find_reference:
-            print(Fore.GREEN+'0'+hex(byte).replace('0x', '')+Style.RESET_ALL, end = ' ')
-          else:print('0'+hex(byte).replace('0x', ''), end = ' ')
-
-          if store_output:
-            file.write('0'+hex(byte).replace('0x', '') + ' ')
-        else:
-          if not find_reference == '' and hex(byte).replace('0x', '') == find_reference:
-            print(Fore.GREEN+hex(byte).replace('0x', '')+Style.RESET_ALL, end = ' ')
-          else: print(hex(byte).replace('0x', ''), end = ' ')
-
-          if store_output:
-            file.write(hex(byte).replace('0x', '') + ' ')
-        print('| '+ ascii_val)
         if store_output:
-          file.write('| ' + ascii_val + '\n')
-        # print(ascii_val, end = '\n')
-        ascii_val = ''
-      else:
-        if len(str(hex(byte).replace('0x', ''))) == 1:
-          if not find_reference == '' and '0'+hex(byte).replace('0x', '') == find_reference:
-            print(Fore.GREEN+'0'+hex(byte).replace('0x', '')+Style.RESET_ALL, end = ' ')
-          else:print('0'+hex(byte).replace('0x', ''), end = ' ')
-
-          if store_output:
-            file.write('0'+hex(byte).replace('0x', '') + ' ')
-        else:
-          if not find_reference == '' and hex(byte).replace('0x', '') == find_reference:
-            print(Fore.GREEN+hex(byte).replace('0x', '')+Style.RESET_ALL, end = ' ')
-          else: print(hex(byte).replace('0x', ''), end = ' ')
-
-          if store_output:
-            file.write(hex(byte).replace('0x', '') + ' ')
-      mem_addr += 1
-    else:
-      if len(str(hex(byte).replace('0x', ''))) == 1:
+          file.write('0'+hex(byte).replace('0x', '') + ' ')
         all_.append('0'+hex(byte).replace('0x', ''))
       else:
+        if not find_reference == '' and hex(byte).replace('0x', '') == find_reference:
+          print(Fore.GREEN+hex(byte).replace('0x', '')+Style.RESET_ALL, end = ' ')
+        else: 
+          if not ascii_val[len(ascii_val)-1] == '.':
+            if highlight_hex_words:
+              print(Back.YELLOW + hex(byte).replace('0x', '') + Style.RESET_ALL, end = ' ')
+            else: print(hex(byte).replace('0x', ''), end = ' ')
+          else: print(hex(byte).replace('0x', ''), end = ' ')
+        if store_output:
+          file.write(hex(byte).replace('0x', '') + ' ')
         all_.append(hex(byte).replace('0x', ''))
-      
-      if len(all_) == size:
-        if not find_all == '':
-          info = {find_all: []}
-          for x in range(len(all_)):
-            mem_addr += 1
-            if all_[x] == find_all: info[find_all].append('0x'+format(mem_addr, '06X'))
-          print(info)
-        if not has_value == '':
-          mem_addr = 0
-          found = ''
-          for x in range(len(all_)):
-            if x == len(all_) - 1:
-              print(False)
-              break
-            found = all_[x] + all_[x+1]
+    elif mem_addr % CS == CS - 1:
+      if len(str(hex(byte).replace('0x', ''))) == 1:
+        if not find_reference == '' and '0'+hex(byte).replace('0x', '') == find_reference:
+          print(Fore.GREEN+'0'+hex(byte).replace('0x', '')+Style.RESET_ALL, end = ' ')
+        else:
+          if not ascii_val[len(ascii_val)-1] == '.':
+            if highlight_hex_words:
+              print(Back.YELLOW + '0'+hex(byte).replace('0x', '') + Style.RESET_ALL, end = ' ')
+            else: print('0'+hex(byte).replace('0x', ''), end = ' ')
+          else: print('0'+hex(byte).replace('0x', ''), end = ' ')
 
-            if found == has_value or has_value in found:
+        if store_output:
+          file.write('0'+hex(byte).replace('0x', '') + ' ')
+        all_.append('0'+hex(byte).replace('0x', ''))
+      else:
+        if not find_reference == '' and hex(byte).replace('0x', '') == find_reference:
+          print(Fore.GREEN+hex(byte).replace('0x', '')+Style.RESET_ALL, end = ' ')
+        else: 
+          if not ascii_val[len(ascii_val)-1] == '.':
+            if highlight_hex_words:
+              print(Back.YELLOW + hex(byte).replace('0x', '') + Style.RESET_ALL, end = ' ')
+            else: print(hex(byte).replace('0x', ''), end = ' ')
+          else: print(hex(byte).replace('0x', ''), end = ' ')
+
+        all_.append(hex(byte).replace('0x', ''))
+
+      if store_output:
+        file.write(hex(byte).replace('0x', '') + ' ')
+      print('| '+ Style.BRIGHT + Fore.WHITE + ascii_val + Style.RESET_ALL, end = '\n')
+      if store_output:
+        file.write('| ' + ascii_val + '\n')
+      # print(ascii_val, end = '\n')
+      ascii_val = ''
+    else:
+      if len(str(hex(byte).replace('0x', ''))) == 1:
+        if not find_reference == '' and '0'+hex(byte).replace('0x', '') == find_reference:
+          print(Fore.GREEN+'0'+hex(byte).replace('0x', '')+Style.RESET_ALL, end = ' ')
+        else:
+          if not ascii_val[len(ascii_val)-1] == '.':
+            if highlight_hex_words:
+              print(Back.YELLOW + '0'+hex(byte).replace('0x', '') + Style.RESET_ALL, end = ' ')
+            else: print('0'+hex(byte).replace('0x', ''), end = ' ')
+          else: print('0'+hex(byte).replace('0x', ''), end = ' ')
+
+        if store_output:
+          file.write('0'+hex(byte).replace('0x', '') + ' ')
+        all_.append('0'+hex(byte).replace('0x', ''))
+      else:
+        if not find_reference == '' and hex(byte).replace('0x', '') == find_reference:
+          print(Fore.GREEN+hex(byte).replace('0x', '')+Style.RESET_ALL, end = ' ')
+        else: 
+          if not ascii_val[len(ascii_val)-1] == '.':
+            if highlight_hex_words: 
+              print(Back.YELLOW + hex(byte).replace('0x', '') + Style.RESET_ALL, end = ' ')
+            else: print(hex(byte).replace('0x', ''), end = ' ')
+          else: print(hex(byte).replace('0x', ''), end = ' ')
+
+        if store_output:
+          file.write(hex(byte).replace('0x', '') + ' ')
+        all_.append(hex(byte).replace('0x', ''))
+    mem_addr += 1
+    if mem_addr == size:
+      mem_addr = 0
+      if not has_value == '' or not find_all == '':
+        if len(all_) == size:
+          if not find_all == '':
+            info = {find_all: []}
+            for x in range(len(all_)):
               mem_addr += 1
-              print(str(True) + ', found at offset 0x' + format(mem_addr, '06X') + f'({int(mem_addr)})')
-              break 
-            mem_addr += 1
+              if all_[x] == find_all: info[find_all].append('0x'+format(mem_addr, '06X'))
+            
+            with open('find.json', 'w') as f:
+              f.write(json.dumps(info, indent = 2))
+              f.close()
+            
+          if not has_value == '':
+            mem_addr = 0
+            found = ''
+            for x in range(len(all_)):
+              if x == len(all_) - 1:
+                print(False)
+                break
+              found = all_[x] + all_[x+1]
 
+              if found == has_value or has_value in found:
+                mem_addr += 1
+                print(str(True) + ', found at offset 0x' + format(mem_addr, '06X') + f'({int(mem_addr)})')
+                break 
+              mem_addr += 1
 
   return hex_value
 
@@ -148,4 +221,5 @@ def open_and_read():
     return validate_hex(sys.argv[1])
   
 if __name__ == '__main__':
-  open_and_read()
+  if sys.argv[1] == '--h': WelcomeScreen()
+  else: open_and_read()

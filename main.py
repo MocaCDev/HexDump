@@ -17,7 +17,8 @@ def WelcomeScreen():
   print('\n\t\tCommands:\n\t\t1) --FR:\n\t\t\t- Find and highlight all references of a value\n\t\t2) --has:\n\t\t\t- Check and see if a specific value exists in the binary\n\t\t3) --FA:\n\t\t\t- Find all references to a value, along with the offset\n\t\t4) --CS:\n\t\t\t- Change chunk sizes. Default is 16\n\t\t5) --colored:\n\t\t\t- Change colored output of offsets.\n\t\t6) --store:\n\t\t\t- Store dump into file\n\t\t7) --endat:\n\t\t\t- End at a specific point\n\t\t8) --startat:\n\t\t\t- Start at a secific point\n\t\t9) --JD:\n\t\t\t- Print just the data\n\t\t10) --HW:\n\t\t\t- Highlight words\n\t\t11) --HHW:\n\t\t\t- Highlight hex values of the words\n\n\tTo run, type ./dump file_to_dump --[argname] [arg_param]\n\tYou can have as many arguments as you want!')
 
 def validate_hex(file):
-
+  tprint("HexDUMP")
+  print('\t\tBy MocaCDeveloper\n\n' + f'{"_"*67}')
   hex_value = ''
   ascii_val = ''
   mem_addr = 0
@@ -32,6 +33,10 @@ def validate_hex(file):
   just_data = False
   highlight_words = False
   highlight_hex_words = False
+  print_under = False
+  special_val = '.'
+  spacing = 1
+  mark_all_vals = []
 
   if len(sys.argv) >= 2:
     for i in range(len(sys.argv)):
@@ -62,6 +67,21 @@ def validate_hex(file):
           highlight_words = True
         if sys.argv[i] == '--HHW':
           highlight_hex_words = True
+        if sys.argv[i] == '--PU':
+          print_under = True
+        if sys.argv[i] == '--special':
+          if sys.argv[i + 1] == 'empty': special_val = ' '
+          else: special_val = sys.argv[i + 1]
+          i += 1
+        if sys.argv[i] == '--spacing':
+          spacing = int(sys.argv[i + 1])
+          i += 1
+        if sys.argv[i] == '--MA':
+          i += 1
+          while ',' in sys.argv[i] or ',' in sys.argv[i-1]:
+            mark_all_vals.append(sys.argv[i].replace(',',''))
+            if i == len(sys.argv) -1:break
+            i += 1
         if sys.argv[i] == '--colored':
           if sys.argv[i + 1] == 'C': color = Fore.CYAN
           if sys.argv[i + 1] == 'B': color = Fore.BLUE
@@ -78,6 +98,8 @@ def validate_hex(file):
   if store_output:
     file = open('output.txt', 'w')
   
+  last_val = ''
+  count = 0
   for byte in f:
 
     if mem_addr == end_at:
@@ -91,99 +113,121 @@ def validate_hex(file):
         ascii_val += f'{Back.CYAN}{chr(byte)}{Style.RESET_ALL}'
       else: ascii_val += chr(byte)
     else:
-      ascii_val += '.'
+      ascii_val += special_val
 
+    count += 1
     if mem_addr % CS == 0 or mem_addr == start_at:
       if not just_data:
-        print(f'{Style.BRIGHT + Back.WHITE + color if not color == None else Style.BRIGHT + Fore.WHITE}' + '\x1B[3m' + format(mem_addr, '06X') + f'{Style.RESET_ALL}', end = ' | ')
+        print(f'{Style.BRIGHT + Back.WHITE + color if not color == None else Style.BRIGHT + Fore.WHITE}' + '\x1B[3m' + format(mem_addr, '06X') + f'{Style.RESET_ALL}', end = '|')
       if store_output:
-        file.write(format(mem_addr, '06X') + ' | ')
+        file.write(format(mem_addr, '06X') + '|')
       if len(str(hex(byte).replace('0x', ''))) == 1:
-        if not find_reference == '' and '0'+hex(byte).replace('0x', '') == find_reference:
-          print(Fore.GREEN+'0'+hex(byte).replace('0x', '')+Style.RESET_ALL, end = ' ')
+        if not find_reference == '' and '0'+hex(byte).replace('0x', '') == find_reference or '0'+hex(byte).replace('0x', '') in mark_all_vals:
+          print(Fore.GREEN+'0'+hex(byte).replace('0x', '')+Style.RESET_ALL, end = f'{" " if count == spacing else ""}')
         else: 
           if not ascii_val[len(ascii_val)-1] == '.':
             if highlight_hex_words:
-              print(Back.YELLOW + '0'+hex(byte).replace('0x', '') + Style.RESET_ALL, end = ' ')
-            else: print('0'+hex(byte).replace('0x', ''), end = ' ')
-          else: print('0'+hex(byte).replace('0x', ''), end = ' ')
+              print(Back.YELLOW + '0'+hex(byte).replace('0x', '') + Style.RESET_ALL, end = f'{" " if count == spacing else ""}')
+            else: print('0'+hex(byte).replace('0x', ''), end = f'{" " if count == spacing else ""}')
+          else: print('0'+hex(byte).replace('0x', ''), end = f'{" " if count == spacing else ""}')
 
         if store_output:
-          file.write('0'+hex(byte).replace('0x', '') + ' ')
+          file.write('0'+hex(byte).replace('0x', '') + f'{" " if count == spacing else ""}')
         all_.append('0'+hex(byte).replace('0x', ''))
       else:
-        if not find_reference == '' and hex(byte).replace('0x', '') == find_reference:
-          print(Fore.GREEN+hex(byte).replace('0x', '')+Style.RESET_ALL, end = ' ')
+        if not find_reference == '' and hex(byte).replace('0x', '') == find_reference or hex(byte).replace('0x', '') in mark_all_vals:
+          print(Fore.GREEN+hex(byte).replace('0x', '')+Style.RESET_ALL, end = f'{" " if count == spacing else ""}')
         else: 
           if not ascii_val[len(ascii_val)-1] == '.':
             if highlight_hex_words:
               print(Back.YELLOW + hex(byte).replace('0x', '') + Style.RESET_ALL, end = ' ')
-            else: print(hex(byte).replace('0x', ''), end = ' ')
-          else: print(hex(byte).replace('0x', ''), end = ' ')
+            else: print(hex(byte).replace('0x', ''), end = f'{"" if count < spacing else " "}')
+          else: print(hex(byte).replace('0x', ''), end = f'{"" if count < spacing else " "}')
         if store_output:
-          file.write(hex(byte).replace('0x', '') + ' ')
+          file.write(hex(byte).replace('0x', '') + f'{"" if count < spacing else " "}')
         all_.append(hex(byte).replace('0x', ''))
     elif mem_addr % CS == CS - 1:
       if len(str(hex(byte).replace('0x', ''))) == 1:
-        if not find_reference == '' and '0'+hex(byte).replace('0x', '') == find_reference:
-          print(Fore.GREEN+'0'+hex(byte).replace('0x', '')+Style.RESET_ALL, end = ' ')
+        if not find_reference == '' and '0'+hex(byte).replace('0x', '') == find_reference or '0'+hex(byte).replace('0x', '') in mark_all_vals:
+          print(Fore.GREEN+'0'+hex(byte).replace('0x', '')+Style.RESET_ALL, end = '')
         else:
           if not ascii_val[len(ascii_val)-1] == '.':
             if highlight_hex_words:
-              print(Back.YELLOW + '0'+hex(byte).replace('0x', '') + Style.RESET_ALL, end = ' ')
-            else: print('0'+hex(byte).replace('0x', ''), end = ' ')
-          else: print('0'+hex(byte).replace('0x', ''), end = ' ')
+              print(Back.YELLOW + '0'+hex(byte).replace('0x', '') + Style.RESET_ALL, end = '')
+            else: print('0'+hex(byte).replace('0x', ''), end = '')
+          else: print('0'+hex(byte).replace('0x', ''), end = '')
 
         if store_output:
-          file.write('0'+hex(byte).replace('0x', '') + ' ')
+          file.write('0'+hex(byte).replace('0x', '') + '')
         all_.append('0'+hex(byte).replace('0x', ''))
       else:
-        if not find_reference == '' and hex(byte).replace('0x', '') == find_reference:
-          print(Fore.GREEN+hex(byte).replace('0x', '')+Style.RESET_ALL, end = ' ')
+        if not find_reference == '' and hex(byte).replace('0x', '') == find_reference or hex(byte).replace('0x', '') in mark_all_vals:
+          print(Fore.GREEN+hex(byte).replace('0x', '')+Style.RESET_ALL, end = '')
         else: 
           if not ascii_val[len(ascii_val)-1] == '.':
             if highlight_hex_words:
-              print(Back.YELLOW + hex(byte).replace('0x', '') + Style.RESET_ALL, end = ' ')
-            else: print(hex(byte).replace('0x', ''), end = ' ')
-          else: print(hex(byte).replace('0x', ''), end = ' ')
+              print(Back.YELLOW + hex(byte).replace('0x', '') + Style.RESET_ALL, end = '')
+            else: print(hex(byte).replace('0x', ''), end = '')
+          else: print(hex(byte).replace('0x', ''), end = '')
 
         all_.append(hex(byte).replace('0x', ''))
 
       if store_output:
-        file.write(hex(byte).replace('0x', '') + ' ')
-      print('| '+ Style.BRIGHT + Fore.WHITE + ascii_val + Style.RESET_ALL, end = '\n')
+        file.write(hex(byte).replace('0x', '') + '')
+      if print_under:
+        print('\n\t   |', end = '')
+        c = 0
+        for i in range(len(ascii_val)):
+          if i == len(ascii_val) - 1: last_val = ascii_val[i]
+
+          if c >= 1: 
+            if not ascii_val[i] == '.':
+              if not ascii_val[i-1] == '.':print('  ' + ascii_val[i], end = '')
+              else: print(' [' + ascii_val[i], end = '')
+            else:
+              if not ascii_val[i-1] == '.':print('] ' + ascii_val[i], end = '')
+              else:print('  ' + ascii_val[i], end = '')
+          else: 
+            if ascii_val[i] == '.' and not last_val == '.':print(' ]' + ascii_val[i], end = '')
+            else: print('  ' + ascii_val[i], end = '')
+          c += 1
+        print()
+        # print('\n\t   | '+ Style.BRIGHT + Fore.WHITE + ascii_val + Style.RESET_ALL, end = '\n')
+      else:
+        print('|'+ Style.BRIGHT + Fore.WHITE + ascii_val + Style.RESET_ALL, end = '\n')
       if store_output:
-        file.write('| ' + ascii_val + '\n')
+        file.write('|' + ascii_val + '\n')
       # print(ascii_val, end = '\n')
       ascii_val = ''
     else:
       if len(str(hex(byte).replace('0x', ''))) == 1:
-        if not find_reference == '' and '0'+hex(byte).replace('0x', '') == find_reference:
-          print(Fore.GREEN+'0'+hex(byte).replace('0x', '')+Style.RESET_ALL, end = ' ')
+        if not find_reference == '' and '0'+hex(byte).replace('0x', '') == find_reference or '0'+hex(byte).replace('0x', '') in mark_all_vals:
+          print(Fore.GREEN+'0'+hex(byte).replace('0x', '')+Style.RESET_ALL, end = f'{"" if count < spacing else " "}')
         else:
           if not ascii_val[len(ascii_val)-1] == '.':
             if highlight_hex_words:
               print(Back.YELLOW + '0'+hex(byte).replace('0x', '') + Style.RESET_ALL, end = ' ')
-            else: print('0'+hex(byte).replace('0x', ''), end = ' ')
-          else: print('0'+hex(byte).replace('0x', ''), end = ' ')
+            else: print('0'+hex(byte).replace('0x', ''), end = f'{"" if count < spacing else " "}')
+          else: print('0'+hex(byte).replace('0x', ''), end = f'{"" if count < spacing else " "}')
 
         if store_output:
-          file.write('0'+hex(byte).replace('0x', '') + ' ')
+          file.write('0'+hex(byte).replace('0x', '') + f'{"" if count < spacing else " "}')
         all_.append('0'+hex(byte).replace('0x', ''))
       else:
-        if not find_reference == '' and hex(byte).replace('0x', '') == find_reference:
-          print(Fore.GREEN+hex(byte).replace('0x', '')+Style.RESET_ALL, end = ' ')
+        if not find_reference == '' and hex(byte).replace('0x', '') == find_reference or hex(byte).replace('0x', '') in mark_all_vals:
+          print(Fore.GREEN+hex(byte).replace('0x', '')+Style.RESET_ALL, end = f'{"" if count < spacing else " "}')
         else: 
           if not ascii_val[len(ascii_val)-1] == '.':
             if highlight_hex_words: 
               print(Back.YELLOW + hex(byte).replace('0x', '') + Style.RESET_ALL, end = ' ')
-            else: print(hex(byte).replace('0x', ''), end = ' ')
-          else: print(hex(byte).replace('0x', ''), end = ' ')
+            else: print(hex(byte).replace('0x', ''), end = f'{"" if count < spacing else " "}')
+          else: print(hex(byte).replace('0x', ''), end = f'{"" if count < spacing else " "}')
 
         if store_output:
-          file.write(hex(byte).replace('0x', '') + ' ')
+          file.write(hex(byte).replace('0x', '') + f'{"" if count < spacing else " "}')
         all_.append(hex(byte).replace('0x', ''))
     mem_addr += 1
+    if count == spacing: count = 0
     if mem_addr == size:
       mem_addr = 0
       if not has_value == '' or not find_all == '':
@@ -213,7 +257,7 @@ def validate_hex(file):
                 break 
               mem_addr += 1
 
-  return hex_value
+  print('' + f'{"_"*67}')
 
 def open_and_read():
 

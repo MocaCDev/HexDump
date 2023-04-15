@@ -6,15 +6,15 @@ from colorama import Fore, Style, Back
 # ToAdd:
 # Searching for specific binary value
 # Chunking the binary output into sections
-# 
+# TODO: Make it to where if we end at a specific point we still print the data
 
 if not len(sys.argv) >= 2:
-  raise Exception('Expected file as argument')
+  raise Exception('Expected file as argument, and possible other arguments following')
 
 def WelcomeScreen():
   tprint("HexDUMP")
   print(f'\tCreated by MocaCDeveloper\n\tVersion: 1.0.1')
-  print('\n\t\tCommands:\n\t\t1) --FR:\n\t\t\t- Find and highlight all references of a value\n\t\t2) --has:\n\t\t\t- Check and see if a specific value exists in the binary\n\t\t3) --FA:\n\t\t\t- Find all references to a value, along with the offset\n\t\t4) --CS:\n\t\t\t- Change chunk sizes. Default is 16\n\t\t5) --colored:\n\t\t\t- Change colored output of offsets.\n\t\t6) --store:\n\t\t\t- Store dump into file\n\t\t7) --endat:\n\t\t\t- End at a specific point\n\t\t8) --startat:\n\t\t\t- Start at a secific point\n\t\t9) --JD:\n\t\t\t- Print just the data\n\t\t10) --HW:\n\t\t\t- Highlight words\n\t\t11) --HHW:\n\t\t\t- Highlight hex values of the words\n\n\tTo run, type ./dump file_to_dump --[argname] [arg_param]\n\tYou can have as many arguments as you want!')
+  print('\n\t\tCommands:\n\t\t\t1) --FR:\n\t\t\t\t- Find and highlight all references of a value\n\t\t\t2) --has:\n\t\t\t\t- Check and see if a specific value exists in the binary\n\t\t\t3) --FA:\n\t\t\t\t- Find all references to a value, along with the offset\n\t\t\t4) --CS:\n\t\t\t\t- Change chunk sizes. Default is 16\n\t\t\t5) --colored:\n\t\t\t\t- Change colored output of offsets.\n\t\t\t6) --store:\n\t\t\t\t- Store dump into file\n\t\t\t7) --endat:\n\t\t\t\t- End at a specific point\n\t\t\t8) --startat:\n\t\t\t\t- Start at a secific point\n\t\t\t9) --JD:\n\t\t\t\t- Print just the data\n\t\t\t10) --HW:\n\t\t\t\t- Highlight words\n\t\t\t11) --HHW:\n\t\t\t\t- Highlight hex values of the words\n\n\tTo run, type ./dump file_to_dump --[argname] [arg_param]\n\tYou can have as many arguments as you want!', end='\n\n')
 
 def validate_hex(file):
   tprint("HexDUMP")
@@ -46,6 +46,10 @@ def validate_hex(file):
           i += 1
         if sys.argv[i] == '--has':
           has_value = sys.argv[i + 1]
+          # Get last 4 characters of argument, ignore all rest
+          if len(has_value) > 4:
+            while len(has_value) > 4:
+              has_value = has_value[1:]
           i += 1
         if sys.argv[i] == '--FA':
           find_all = sys.argv[i + 1]
@@ -77,18 +81,22 @@ def validate_hex(file):
           spacing = int(sys.argv[i + 1])
           i += 1
         if sys.argv[i] == '--MA':
-          i += 1
-          while ',' in sys.argv[i] or ',' in sys.argv[i-1]:
-            mark_all_vals.append(sys.argv[i].replace(',',''))
-            if i == len(sys.argv) -1:break
             i += 1
+            while ',' in sys.argv[i] or ',' in sys.argv[i-1]:
+                mark_all_vals.append(sys.argv[i].replace(',',''))
+                if i == len(sys.argv) -1:break
+                i += 1
+            if not ',' in sys.argv[i]:
+                mark_all_vals.append(sys.argv[i].replace(',', ''))
+            
+        
         if sys.argv[i] == '--colored':
           if sys.argv[i + 1] == 'C': color = Fore.CYAN
           if sys.argv[i + 1] == 'B': color = Fore.BLUE
           if sys.argv[i + 1] == 'M': color = Fore.MAGENTA
           if sys.argv[i + 1] == 'Y': color = Fore.YELLOW
       except:
-        raise Exception(f"Error occurred: Most likely missing a command for {sys.argv[i]}, or the command {sys.argv[i]} did not expect a command.")
+            sys.exit()
 
   f = open(file, 'rb').read()
   size = len(f)
@@ -103,6 +111,19 @@ def validate_hex(file):
   for byte in f:
 
     if mem_addr == end_at:
+      for i in range(CS - len(ascii_val)): print('XX ', end='')
+      if CS - len(ascii_val) != 0:
+        print('\b', end='')
+      print('|', end = '')
+      for i in range(len(ascii_val)):
+          if highlight_words:
+            if not ascii_val[i] == '.':
+              print(Back.CYAN + ascii_val[i] + Style.RESET_ALL, end = '')
+            else:
+              print(ascii_val[i], end='')
+          else:
+            print(ascii_val[i], end='')
+      for i in range(CS - len(ascii_val)): print('X', end='')
       break
     if not mem_addr >= start_at:
       mem_addr += 1
@@ -229,6 +250,34 @@ def validate_hex(file):
     mem_addr += 1
     if count == spacing: count = 0
     if mem_addr == size:
+      print(Style.BRIGHT + Fore.WHITE, end='')
+      # Fill out the rest of the line according to the chunk size
+      # Fill it out with XX, meaning there is no data and it is just
+      # fill-ins
+      if mem_addr % CS != 0:
+        while mem_addr % CS != 0:
+          print(Back.YELLOW + 'XX ' + Style.RESET_ALL, end = '')
+          mem_addr += 1
+        print('\b|', end = '')
+        
+        l = len(ascii_val)
+
+        # Print out all the ascii values that we have stored
+        for i in range(len(ascii_val)):
+          if highlight_words:
+            if not ascii_val[i] == '.':
+              print(Back.CYAN + ascii_val[i] + Style.RESET_ALL, end = '')
+            else:
+              print(ascii_val[i], end='')
+          else:
+            print(ascii_val[i], end='')
+
+        # Fill out the rest of the line with an X
+        while l < CS:
+          print(Back.YELLOW + 'X' + Style.RESET_ALL, end = '')
+          l += 1
+        print()
+        
       mem_addr = 0
       if not has_value == '' or not find_all == '':
         if len(all_) == size:
@@ -241,23 +290,31 @@ def validate_hex(file):
             with open('find.json', 'w') as f:
               f.write(json.dumps(info, indent = 2))
               f.close()
-            
+
           if not has_value == '':
             mem_addr = 0
             found = ''
+            all_found = {f'All Found Indexes For {has_value}': []}
             for x in range(len(all_)):
-              if x == len(all_) - 1:
-                print(False)
-                break
-              found = all_[x] + all_[x+1]
+                if x == len(all_) - 1:
+                    break
 
-              if found == has_value or has_value in found:
+                # Check two of the indexes at once
+                # --has can take a argument such as `5678`, which corelates to `56 78` in hex
+                # --has cannot take a argument such as `567890`
+                found = all_[x] + all_[x + 1]
                 mem_addr += 1
-                print(str(True) + ', found at offset 0x' + format(mem_addr, '06X') + f'({int(mem_addr)})')
-                break 
-              mem_addr += 1
 
-  print('' + f'{"_"*67}')
+                if found == has_value or has_value in found:
+                  mem_addr += 1
+                  all_found[f'All Found Indexes For {has_value}'].append(format(mem_addr, '06X'))
+
+            if len(all_found) > 0:
+              with open('all_found.json', 'w') as file:
+                file.write(json.dumps(all_found, indent=2))
+                file.close()
+
+  print('\n' + f'{"_"*67}')
 
 def open_and_read():
 

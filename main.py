@@ -317,9 +317,10 @@ def validate_hex(file):
   print('\n' + f'{"_"*67}')
 
 def open_and_read():
-
-  if os.path.isfile(sys.argv[1]):
-    return validate_hex(sys.argv[1])
+  dir = sys.argv[1]
+  
+  if os.path.isfile(f'{dir}/{sys.argv[2]}'):
+    return validate_hex(f'{dir}/{sys.argv[2]}')
   
 if __name__ == '__main__':
   if sys.argv[1] == '--h': WelcomeScreen()

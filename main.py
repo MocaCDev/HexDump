@@ -319,6 +319,10 @@ def validate_hex(file):
 def open_and_read():
   dir = sys.argv[1]
   
+  if sys.argv[2] == '--h' or sys.argv[2] == '--help':
+    WelcomeScreen()
+    sys.exit(0)
+  
   if os.path.isfile(f'{dir}/{sys.argv[2]}'):
     return validate_hex(f'{dir}/{sys.argv[2]}')
   
